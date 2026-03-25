@@ -21,6 +21,7 @@ style/my-style
 test/test-case
 hotfix/some-update
 release/new-release
+update/new-update
 ```
  
 ---
