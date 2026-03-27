@@ -4,6 +4,8 @@
 text.txt
 .DS_Store
 
+CLAUDE.md
+
 # Maven
 target/
 pom.xml.tag
