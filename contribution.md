@@ -111,9 +111,9 @@ Make sure you have the following installed:
 
 ### Quick start
 
-The project includes a `build.sh` script inside `AssesX-backend/` that automatically checks and installs missing dependencies, builds the JAR, and starts all services via Docker Compose.
+The project includes a `build.sh` script inside `AssessX-backend/` that automatically checks and installs missing dependencies, builds the JAR, and starts all services via Docker Compose.
 ```bash
-cd AssesX-backend
+cd AssessX-backend
 chmod +x build.sh
 ./build.sh
 ```
@@ -131,7 +131,7 @@ This will:
 If you prefer to run steps manually:
 ```bash
 # 1. Build the JAR
-cd AssesX-backend
+cd AssessX-backend
 ./mvnw clean package -DskipTests
 
 # 2. Start services
