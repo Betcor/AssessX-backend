@@ -5,6 +5,7 @@ COPY AssessX-backend/src ./src
 RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache docker-cli
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
