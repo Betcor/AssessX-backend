@@ -33,3 +33,4 @@ buildNumber.properties
 scripts/build.sh
 docker-compose.dev.yml
 docker-compose.yml
+curl-testing-guide.md

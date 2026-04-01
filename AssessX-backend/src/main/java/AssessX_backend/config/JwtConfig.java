@@ -1,5 +1,6 @@
 package AssessX_backend.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
@@ -20,6 +21,11 @@ public class JwtConfig {
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 
     @Bean
     public JwtDecoder jwtDecoder() {
