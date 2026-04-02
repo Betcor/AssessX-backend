@@ -4,11 +4,16 @@ import AssessX_backend.dto.CreateTestRequest;
 import AssessX_backend.dto.SubmitTestRequest;
 import AssessX_backend.dto.TestResponseDto;
 import AssessX_backend.dto.TestSubmitResultDto;
+import AssessX_backend.exception.AssignmentNotFoundException;
 import AssessX_backend.exception.TestAnswersParseException;
 import AssessX_backend.exception.TestNotFoundException;
 import AssessX_backend.exception.UserNotFoundException;
+import AssessX_backend.model.Assignment;
+import AssessX_backend.model.Result;
 import AssessX_backend.model.Test;
 import AssessX_backend.model.User;
+import AssessX_backend.repository.AssignmentRepository;
+import AssessX_backend.repository.ResultRepository;
 import AssessX_backend.repository.TestRepository;
 import AssessX_backend.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -16,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,11 +31,19 @@ public class TestService {
 
     private final TestRepository testRepository;
     private final UserRepository userRepository;
+    private final AssignmentRepository assignmentRepository;
+    private final ResultRepository resultRepository;
     private final ObjectMapper objectMapper;
 
-    public TestService(TestRepository testRepository, UserRepository userRepository, ObjectMapper objectMapper) {
+    public TestService(TestRepository testRepository,
+                       UserRepository userRepository,
+                       AssignmentRepository assignmentRepository,
+                       ResultRepository resultRepository,
+                       ObjectMapper objectMapper) {
         this.testRepository = testRepository;
         this.userRepository = userRepository;
+        this.assignmentRepository = assignmentRepository;
+        this.resultRepository = resultRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -79,8 +93,8 @@ public class TestService {
         testRepository.deleteById(id);
     }
 
-    @Transactional(readOnly = true)
-    public TestSubmitResultDto submitTest(Long id, SubmitTestRequest request) {
+    @Transactional
+    public TestSubmitResultDto submitTest(Long id, SubmitTestRequest request, Long userId) {
         Test test = findTestById(id);
         Map<String, String> storedAnswers = parseAnswers(test.getAnswers(), id);
         int total = storedAnswers.size();
@@ -95,6 +109,24 @@ public class TestService {
             }
         }
         int earned = (int) Math.round((double) correct / total * test.getPoints());
+
+        if (request.getAssignmentId() != null && userId != null) {
+            Assignment assignment = assignmentRepository.findById(request.getAssignmentId())
+                    .orElseThrow(() -> new AssignmentNotFoundException(request.getAssignmentId()));
+            User user = findUserById(userId);
+            int attemptNumber = resultRepository.countByUserIdAndAssignmentId(userId, assignment.getId()) + 1;
+
+            Result result = new Result();
+            result.setUser(user);
+            result.setAssignment(assignment);
+            result.setTest(test);
+            result.setPoints(earned);
+            result.setMaxPoints(test.getPoints());
+            result.setAttemptNumber(attemptNumber);
+            result.setSubmittedAt(LocalDateTime.now());
+            resultRepository.save(result);
+        }
+
         return new TestSubmitResultDto(earned, test.getPoints(), correct, total);
     }
 
