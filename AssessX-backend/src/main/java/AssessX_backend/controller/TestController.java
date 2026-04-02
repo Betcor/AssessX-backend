@@ -65,7 +65,9 @@ public class TestController {
     @PostMapping("/{id}/submit")
     public ResponseEntity<TestSubmitResultDto> submitTest(
             @PathVariable Long id,
-            @Valid @RequestBody SubmitTestRequest request) {
-        return ResponseEntity.ok(testService.submitTest(id, request));
+            @Valid @RequestBody SubmitTestRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.parseLong(jwt.getSubject());
+        return ResponseEntity.ok(testService.submitTest(id, request, userId));
     }
 }

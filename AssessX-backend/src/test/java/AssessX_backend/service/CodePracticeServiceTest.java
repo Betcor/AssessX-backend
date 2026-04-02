@@ -9,7 +9,10 @@ import AssessX_backend.exception.UserNotFoundException;
 import AssessX_backend.model.CodePractice;
 import AssessX_backend.model.PracticeUnitTest;
 import AssessX_backend.model.User;
+import AssessX_backend.repository.AssignmentRepository;
 import AssessX_backend.repository.CodePracticeRepository;
+import AssessX_backend.repository.CodeSubmissionRepository;
+import AssessX_backend.repository.ResultRepository;
 import AssessX_backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +34,9 @@ class CodePracticeServiceTest {
     @Mock private CodePracticeRepository practiceRepository;
     @Mock private UserRepository userRepository;
     @Mock private CodeExecutionService codeExecutionService;
+    @Mock private AssignmentRepository assignmentRepository;
+    @Mock private ResultRepository resultRepository;
+    @Mock private CodeSubmissionRepository codeSubmissionRepository;
 
     private CodePracticeService practiceService;
 
@@ -39,7 +45,8 @@ class CodePracticeServiceTest {
 
     @BeforeEach
     void setUp() {
-        practiceService = new CodePracticeService(practiceRepository, userRepository, codeExecutionService);
+        practiceService = new CodePracticeService(practiceRepository, userRepository, codeExecutionService,
+                assignmentRepository, resultRepository, codeSubmissionRepository);
 
         teacher = new User();
         teacher.setId(1L);
@@ -224,7 +231,7 @@ class CodePracticeServiceTest {
         SubmitCodeRequest req = new SubmitCodeRequest();
         req.setCode("public class Solution { public String fizzBuzz(int n) { return \"Fizz\"; } }");
 
-        CodeSubmissionResultDto result = practiceService.submitPractice(1L, req);
+        CodeSubmissionResultDto result = practiceService.submitPractice(1L, req, null);
 
         assertThat(result.getPassedTests()).isEqualTo(1);
         assertThat(result.getTotalTests()).isEqualTo(1);
@@ -240,7 +247,7 @@ class CodePracticeServiceTest {
         SubmitCodeRequest req = new SubmitCodeRequest();
         req.setCode("public class Solution {}");
 
-        practiceService.submitPractice(1L, req);
+        practiceService.submitPractice(1L, req, null);
 
         verify(codeExecutionService).execute(
                 anyString(),
@@ -256,7 +263,7 @@ class CodePracticeServiceTest {
         SubmitCodeRequest req = new SubmitCodeRequest();
         req.setCode("public class Solution {}");
 
-        assertThatThrownBy(() -> practiceService.submitPractice(99L, req))
+        assertThatThrownBy(() -> practiceService.submitPractice(99L, req, null))
                 .isInstanceOf(CodePracticeNotFoundException.class)
                 .hasMessageContaining("Code practice not found");
     }

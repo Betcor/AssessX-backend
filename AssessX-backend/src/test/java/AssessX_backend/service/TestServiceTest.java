@@ -8,6 +8,8 @@ import AssessX_backend.model.Test;
 import AssessX_backend.model.User;
 import AssessX_backend.exception.TestNotFoundException;
 import AssessX_backend.exception.UserNotFoundException;
+import AssessX_backend.repository.AssignmentRepository;
+import AssessX_backend.repository.ResultRepository;
 import AssessX_backend.repository.TestRepository;
 import AssessX_backend.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +35,12 @@ class TestServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AssignmentRepository assignmentRepository;
+
+    @Mock
+    private ResultRepository resultRepository;
+
     private TestService testService;
 
     private User teacher;
@@ -40,7 +48,7 @@ class TestServiceTest {
 
     @BeforeEach
     void setUp() {
-        testService = new TestService(testRepository, userRepository, new ObjectMapper());
+        testService = new TestService(testRepository, userRepository, assignmentRepository, resultRepository, new ObjectMapper());
 
         teacher = new User();
         teacher.setId(1L);
@@ -174,7 +182,7 @@ class TestServiceTest {
         SubmitTestRequest req = new SubmitTestRequest();
         req.setAnswers(Map.of("1", "A", "2", "B", "3", "C"));
 
-        TestSubmitResultDto result = testService.submitTest(1L, req);
+        TestSubmitResultDto result = testService.submitTest(1L, req, null);
 
         assertThat(result.getCorrectAnswers()).isEqualTo(3);
         assertThat(result.getTotalQuestions()).isEqualTo(3);
@@ -189,7 +197,7 @@ class TestServiceTest {
         SubmitTestRequest req = new SubmitTestRequest();
         req.setAnswers(Map.of("1", "D", "2", "D", "3", "D"));
 
-        TestSubmitResultDto result = testService.submitTest(1L, req);
+        TestSubmitResultDto result = testService.submitTest(1L, req, null);
 
         assertThat(result.getCorrectAnswers()).isEqualTo(0);
         assertThat(result.getEarnedPoints()).isEqualTo(0);
@@ -202,7 +210,7 @@ class TestServiceTest {
         SubmitTestRequest req = new SubmitTestRequest();
         req.setAnswers(Map.of("1", "A", "2", "D", "3", "D"));
 
-        TestSubmitResultDto result = testService.submitTest(1L, req);
+        TestSubmitResultDto result = testService.submitTest(1L, req, null);
 
         assertThat(result.getCorrectAnswers()).isEqualTo(1);
         assertThat(result.getTotalQuestions()).isEqualTo(3);
@@ -216,7 +224,7 @@ class TestServiceTest {
         SubmitTestRequest req = new SubmitTestRequest();
         req.setAnswers(Map.of("1", "A"));
 
-        assertThatThrownBy(() -> testService.submitTest(99L, req))
+        assertThatThrownBy(() -> testService.submitTest(99L, req, null))
                 .isInstanceOf(TestNotFoundException.class)
                 .hasMessageContaining("Test not found");
     }

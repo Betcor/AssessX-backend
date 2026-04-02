@@ -4,16 +4,24 @@ import AssessX_backend.dto.CodePracticeResponseDto;
 import AssessX_backend.dto.CodeSubmissionResultDto;
 import AssessX_backend.dto.CreateCodePracticeRequest;
 import AssessX_backend.dto.SubmitCodeRequest;
+import AssessX_backend.exception.AssignmentNotFoundException;
 import AssessX_backend.exception.CodePracticeNotFoundException;
 import AssessX_backend.exception.UserNotFoundException;
+import AssessX_backend.model.Assignment;
 import AssessX_backend.model.CodePractice;
+import AssessX_backend.model.CodeSubmission;
 import AssessX_backend.model.PracticeUnitTest;
+import AssessX_backend.model.Result;
 import AssessX_backend.model.User;
+import AssessX_backend.repository.AssignmentRepository;
 import AssessX_backend.repository.CodePracticeRepository;
+import AssessX_backend.repository.CodeSubmissionRepository;
+import AssessX_backend.repository.ResultRepository;
 import AssessX_backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,13 +31,22 @@ public class CodePracticeService {
     private final CodePracticeRepository practiceRepository;
     private final UserRepository userRepository;
     private final CodeExecutionService codeExecutionService;
+    private final AssignmentRepository assignmentRepository;
+    private final ResultRepository resultRepository;
+    private final CodeSubmissionRepository codeSubmissionRepository;
 
     public CodePracticeService(CodePracticeRepository practiceRepository,
                                UserRepository userRepository,
-                               CodeExecutionService codeExecutionService) {
+                               CodeExecutionService codeExecutionService,
+                               AssignmentRepository assignmentRepository,
+                               ResultRepository resultRepository,
+                               CodeSubmissionRepository codeSubmissionRepository) {
         this.practiceRepository = practiceRepository;
         this.userRepository = userRepository;
         this.codeExecutionService = codeExecutionService;
+        this.assignmentRepository = assignmentRepository;
+        this.resultRepository = resultRepository;
+        this.codeSubmissionRepository = codeSubmissionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -97,13 +114,46 @@ public class CodePracticeService {
         practiceRepository.deleteById(id);
     }
 
-    @Transactional(readOnly = true)
-    public CodeSubmissionResultDto submitPractice(Long id, SubmitCodeRequest request) {
+    @Transactional
+    public CodeSubmissionResultDto submitPractice(Long id, SubmitCodeRequest request, Long userId) {
         CodePractice practice = findPracticeById(id);
         List<String> unitTestCodes = practice.getUnitTests().stream()
                 .map(PracticeUnitTest::getTestCode)
                 .collect(Collectors.toList());
-        return codeExecutionService.execute(request.getCode(), unitTestCodes, practice.getTimeLimitSec());
+        CodeSubmissionResultDto executionResult = codeExecutionService.execute(
+                request.getCode(), unitTestCodes, practice.getTimeLimitSec());
+
+        if (request.getAssignmentId() != null && userId != null) {
+            Assignment assignment = assignmentRepository.findById(request.getAssignmentId())
+                    .orElseThrow(() -> new AssignmentNotFoundException(request.getAssignmentId()));
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException(userId));
+            int attemptNumber = resultRepository.countByUserIdAndAssignmentId(userId, assignment.getId()) + 1;
+
+            int total = executionResult.getTotalTests();
+            int passed = executionResult.getPassedTests();
+            int earned = total > 0 ? (int) Math.round((double) passed / total * practice.getPoints()) : 0;
+
+            Result result = new Result();
+            result.setUser(user);
+            result.setAssignment(assignment);
+            result.setPractice(practice);
+            result.setPoints(earned);
+            result.setMaxPoints(practice.getPoints());
+            result.setAttemptNumber(attemptNumber);
+            result.setSubmittedAt(LocalDateTime.now());
+            Result savedResult = resultRepository.save(result);
+
+            CodeSubmission submission = new CodeSubmission();
+            submission.setResult(savedResult);
+            submission.setCode(request.getCode());
+            submission.setTestOutput(executionResult.getOutput());
+            submission.setPassedTests(passed);
+            submission.setTotalTests(total);
+            codeSubmissionRepository.save(submission);
+        }
+
+        return executionResult;
     }
 
     private CodePractice findPracticeById(Long id) {

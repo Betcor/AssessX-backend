@@ -62,7 +62,9 @@ public class CodePracticeController {
     @PostMapping("/{id}/submit")
     public ResponseEntity<CodeSubmissionResultDto> submitPractice(
             @PathVariable Long id,
-            @Valid @RequestBody SubmitCodeRequest request) {
-        return ResponseEntity.ok(practiceService.submitPractice(id, request));
+            @Valid @RequestBody SubmitCodeRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.parseLong(jwt.getSubject());
+        return ResponseEntity.ok(practiceService.submitPractice(id, request, userId));
     }
 }

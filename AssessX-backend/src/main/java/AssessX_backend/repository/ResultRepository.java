@@ -13,6 +13,8 @@ public interface ResultRepository extends JpaRepository<Result, Long> {
 
     List<Result> findByUserId(Long userId);
 
+    int countByUserIdAndAssignmentId(Long userId, Long assignmentId);
+
     List<Result> findByTestId(Long testId);
 
     List<Result> findByPracticeId(Long practiceId);
